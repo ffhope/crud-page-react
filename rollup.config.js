@@ -33,7 +33,15 @@ export default [
         exclude: ['**/*.test.ts', '**/*.test.tsx', '**/*.stories.tsx'],
       }),
     ],
-    external: ['react', 'react-dom', 'antd', 'dayjs'],
+    external: [
+      'react', 
+      'react-dom', 
+      'react/jsx-runtime',
+      'antd', 
+      '@ant-design/icons',
+      'dayjs',
+      'dayjs/plugin/customParseFormat'
+    ],
   },
   {
     input: 'dist/index.d.ts',

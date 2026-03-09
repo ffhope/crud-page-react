@@ -485,14 +485,17 @@ export default function DynamicForm({
       if (mode === 'create') {
         // 新增模式：清空表单并确保没有残留数据
         form.resetFields();
-        form.setFieldsValue({});
+        // 延迟一下确保resetFields完成
+        setTimeout(() => {
+          form.setFieldsValue({});
+        }, 0);
       } else {
         // 编辑/查看模式设置初始值
         const normalized = normalizeInitialValues(formFields, initialValues);
         form.setFieldsValue(normalized);
       }
     }
-  }, [visible, mode, initialValues]);
+  }, [visible, mode, initialValues, form, formFields]);
 
   const switchToRaw = () => {
     // getFieldsValue(true) 返回 store 全量数据（含 id 等非 Form.Item 字段）
@@ -622,7 +625,7 @@ export default function DynamicForm({
         <Form
           form={form}
           layout="vertical"
-          initialValues={mode === 'create' ? {} : normalizeInitialValues(formFields, initialValues)}
+          initialValues={{}} // 不依赖initialValues，完全通过useEffect控制
         >
           {renderFieldGroups()}
         </Form>
