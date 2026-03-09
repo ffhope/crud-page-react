@@ -80,7 +80,7 @@ export default App;
 ## 自定义 API 请求
 
 ```tsx
-import { CrudPage, ApiRequest } from 'dynamic-crud-react';
+import { CrudPage, ApiRequest } from 'crud-page-react';
 
 const customApiRequest: ApiRequest = async (url, options) => {
   const token = localStorage.getItem('token');

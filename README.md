@@ -18,7 +18,7 @@
 ```bash
 npm install crud-page-react
 # 或
-yarn add dynamic-crud-react
+yarn add crud-page-react
 ```
 
 ### 依赖要求
@@ -106,7 +106,7 @@ export default App;
 ## 自定义 API 请求
 
 ```tsx
-import { CrudPage, ApiRequest } from 'dynamic-crud-react';
+import { CrudPage, ApiRequest } from 'crud-page-react';
 
 // 自定义 API 请求函数
 const customApiRequest: ApiRequest = async (url, options) => {
