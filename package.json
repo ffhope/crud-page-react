@@ -1,0 +1,59 @@
+{
+  "name": "crud-page-react",
+  "version": "0.0.1",
+  "description": "一个基于 React + Ant Design 的动态 CRUD 组件库，支持通过 JSON Schema 配置生成完整的增删改查界面",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "npx rollup -c",
+    "dev": "npx rollup -c -w",
+    "prepare": "npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "react",
+    "crud",
+    "dynamic",
+    "form",
+    "table",
+    "antd",
+    "typescript",
+    "json-schema"
+  ],
+  "author": "ffhopever5@gmail.com",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/dynamic-crud-react.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/dynamic-crud-react/issues"
+  },
+  "homepage": "https://github.com/yourusername/dynamic-crud-react#readme",
+  "peerDependencies": {
+    "antd": ">=5.0.0",
+    "dayjs": ">=1.11.0",
+    "react": ">=16.8.0",
+    "react-dom": ">=16.8.0"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "rollup": "^4.9.2",
+    "rollup-plugin-dts": "^6.1.0",
+    "rollup-plugin-peer-deps-external": "^2.2.4",
+    "tslib": "^2.8.1",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^5.2.6"
+  }
+}
