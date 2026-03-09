@@ -29,12 +29,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/dynamic-crud-react.git"
+    "url": "https://github.com/ffhope/crud-page-react.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/dynamic-crud-react/issues"
+    "url": "https://github.com/ffhope/crud-page-react/issues"
   },
-  "homepage": "https://github.com/yourusername/dynamic-crud-react#readme",
+  "homepage": "https://github.com/ffhope/crud-page-react#readme",
   "peerDependencies": {
     "antd": ">=5.0.0",
     "dayjs": ">=1.11.0",
