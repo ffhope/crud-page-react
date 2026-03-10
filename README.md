@@ -2,6 +2,14 @@
 
 一个基于 React + Ant Design 的动态 CRUD 组件库，支持通过 JSON Schema 配置生成完整的增删改查界面。
 
+## 🌐 在线演示
+
+**[https://crud.fufanghao.space/](https://crud.fufanghao.space/)**
+
+- 🎮 **Demo 示例** - 查看完整功能演示和字段类型
+- 🛠️ **配置生成器** - 可视化配置工具，零代码生成 CRUD 页面  
+- 🤖 **AI 提示词** - 使用 AI 从接口文档生成配置
+
 ## 特性
 
 - 🚀 **零代码配置** - 通过 JSON Schema 配置即可生成完整 CRUD 界面
