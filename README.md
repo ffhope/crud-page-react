@@ -66,6 +66,39 @@ function App() {
 }
 ```
 
+## 国际化支持
+
+组件库支持 Ant Design 的国际化配置，默认使用中文。
+
+```tsx
+import React from 'react';
+import { CrudPage, enUS, zhCN } from 'crud-page-react';
+
+// 使用英文
+function EnglishApp() {
+  return <CrudPage schema={schema} locale={enUS} />;
+}
+
+// 使用中文（默认）
+function ChineseApp() {
+  return <CrudPage schema={schema} locale={zhCN} />;
+}
+
+// 不指定 locale 时默认使用中文
+function DefaultApp() {
+  return <CrudPage schema={schema} />;
+}
+```
+
+### 支持的语言
+
+- `zhCN` - 简体中文（默认）
+- `enUS` - 英文
+- `jaJP` - 日文
+- `koKR` - 韩文
+
+更多语言包请参考 [Ant Design 国际化文档](https://ant.design/docs/react/i18n-cn)。
+
 ## 新特性：操作按钮分组 (v0.1.3)
 
 自定义操作现在会自动折叠到"其它操作"下拉菜单中，保持界面整洁：

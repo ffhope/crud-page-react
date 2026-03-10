@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Button, message, Typography } from 'antd';
+import { Button, message, Typography, ConfigProvider } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
+import zhCN from 'antd/locale/zh_CN';
+import type { Locale } from 'antd/es/locale';
 import type { CrudPageSchema, ActionSchema, ActionApiConfig, ApiRequest } from '../types/schema';
 import DynamicFilter from './DynamicFilter';
 import DynamicTable from './DynamicTable';
@@ -12,6 +14,8 @@ interface CrudPageProps {
   schema: CrudPageSchema;
   initialData?: Record<string, unknown>[];
   apiRequest?: ApiRequest;
+  /** Ant Design 语言配置，默认为中文 */
+  locale?: Locale;
 }
 
 /** 动态替换 URL 模板中的占位符 */
@@ -70,7 +74,12 @@ function extractListResponse(json: unknown): { list: Record<string, unknown>[]; 
   return { list: [], total: 0 };
 }
 
-const CrudPage: React.FC<CrudPageProps> = ({ schema, initialData = [], apiRequest: customApiRequest }) => {
+const CrudPage: React.FC<CrudPageProps> = ({ 
+  schema, 
+  initialData = [], 
+  apiRequest: customApiRequest,
+  locale = zhCN 
+}) => {
   const rowKey = schema.rowKey || 'id';
 
   // 使用传入的apiRequest或默认的
@@ -421,51 +430,53 @@ const CrudPage: React.FC<CrudPageProps> = ({ schema, initialData = [], apiReques
   ]);
 
   return (
-    <div style={{ padding: 24, background: '#f5f6fa', minHeight: '100vh' }}>
-      {contextHolder}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Title level={4} style={{ margin: 0 }}>{schema.title}</Title>
-        {schema.api.create && (
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setModalState({ open: true, mode: 'create', record: undefined })}
-          >
-            {schema.createButtonLabel || '新增'}
-          </Button>
-        )}
+    <ConfigProvider locale={locale}>
+      <div style={{ padding: 24, background: '#f5f6fa', minHeight: '100vh' }}>
+        {contextHolder}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <Title level={4} style={{ margin: 0 }}>{schema.title}</Title>
+          {schema.api.create && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setModalState({ open: true, mode: 'create', record: undefined })}
+            >
+              {schema.createButtonLabel || '新增'}
+            </Button>
+          )}
+        </div>
+
+        <DynamicFilter schema={schema} onSearch={handleSearch} onReset={() => handleSearch({})} />
+
+        <DynamicTable
+          schema={schema}
+          data={data}
+          loading={loading}
+          pagination={{
+            current: page,
+            pageSize,
+            total,
+            onChange: handlePageChange,
+          }}
+          onView={(record) => handleAction({ key: 'view', label: '查看', type: 'view' }, record)}
+          onEdit={(record) => handleAction({ key: 'edit', label: '编辑', type: 'edit' }, record)}
+          onDelete={(record) => handleDelete(record)}
+          onCustomAction={(actionKey, record) => {
+            const action = schema.actions?.find(a => a.key === actionKey);
+            if (action) handleAction(action, record);
+          }}
+        />
+
+        <DynamicForm
+          schema={schema}
+          visible={modalState.open}
+          mode={modalState.mode}
+          initialValues={modalState.record}
+          onSubmit={handleFormOk}
+          onCancel={() => setModalState({ open: false, mode: 'create' })}
+        />
       </div>
-
-      <DynamicFilter schema={schema} onSearch={handleSearch} onReset={() => handleSearch({})} />
-
-      <DynamicTable
-        schema={schema}
-        data={data}
-        loading={loading}
-        pagination={{
-          current: page,
-          pageSize,
-          total,
-          onChange: handlePageChange,
-        }}
-        onView={(record) => handleAction({ key: 'view', label: '查看', type: 'view' }, record)}
-        onEdit={(record) => handleAction({ key: 'edit', label: '编辑', type: 'edit' }, record)}
-        onDelete={(record) => handleDelete(record)}
-        onCustomAction={(actionKey, record) => {
-          const action = schema.actions?.find(a => a.key === actionKey);
-          if (action) handleAction(action, record);
-        }}
-      />
-
-      <DynamicForm
-        schema={schema}
-        visible={modalState.open}
-        mode={modalState.mode}
-        initialValues={modalState.record}
-        onSubmit={handleFormOk}
-        onCancel={() => setModalState({ open: false, mode: 'create' })}
-      />
-    </div>
+    </ConfigProvider>
   );
 };
 

@@ -10,7 +10,7 @@ npm install crud-page-react
 
 ```tsx
 import React from 'react';
-import { CrudPage } from 'crud-page-react';
+import { CrudPage, zhCN } from 'crud-page-react';
 import type { CrudPageSchema } from 'crud-page-react';
 
 const schema: CrudPageSchema = {
@@ -161,6 +161,27 @@ const customApiRequest: ApiRequest = async (url, options) => {
   schema={schema}
   apiRequest={customApiRequest}
 />
+```
+
+## 国际化配置
+
+```tsx
+import { CrudPage, enUS, zhCN, jaJP, koKR } from 'crud-page-react';
+
+// 英文界面
+<CrudPage schema={schema} locale={enUS} />
+
+// 中文界面（默认）
+<CrudPage schema={schema} locale={zhCN} />
+
+// 日文界面
+<CrudPage schema={schema} locale={jaJP} />
+
+// 韩文界面
+<CrudPage schema={schema} locale={koKR} />
+
+// 不指定时默认使用中文
+<CrudPage schema={schema} />
 ```
 
 ## 自定义操作和下拉菜单

@@ -44,3 +44,10 @@ export {
   ruleConfigToAntdRule,
   keysToAntdRules,
 } from './types/validationRules';
+
+// 国际化支持 - 导出常用的 Ant Design 语言包
+export { default as zhCN } from 'antd/locale/zh_CN';
+export { default as enUS } from 'antd/locale/en_US';
+export { default as jaJP } from 'antd/locale/ja_JP';
+export { default as koKR } from 'antd/locale/ko_KR';
+export type { Locale } from 'antd/es/locale';

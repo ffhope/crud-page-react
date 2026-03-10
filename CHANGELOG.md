@@ -1,5 +1,28 @@
 # 变更日志
 
+## [0.2.0] - 2024-12-19
+
+### 新增
+- 🌍 **国际化支持**: 新增 `locale` 属性，支持传入 Ant Design 语言配置
+- 📦 **内置语言包**: 导出常用语言包 `zhCN`、`enUS`、`jaJP`、`koKR`
+- 🔧 **类型支持**: 导出 `Locale` 类型定义
+
+### 改进
+- 🎯 **默认中文**: 默认使用中文语言包，无需额外配置
+- 📚 **文档完善**: 更新使用文档和示例，添加国际化说明
+- 🛠️ **开发体验**: 提供完整的 TypeScript 类型支持
+
+### 使用方法
+```tsx
+import { CrudPage, enUS, zhCN } from 'crud-page-react';
+
+// 英文界面
+<CrudPage schema={schema} locale={enUS} />
+
+// 中文界面（默认）
+<CrudPage schema={schema} locale={zhCN} />
+```
+
 ## [0.1.5] - 2024-12-19
 
 ### 改进
