@@ -238,7 +238,17 @@ export default function DynamicTable({
             return null;
           })}
           
-          {/* 自定义操作下拉菜单 - 仅在有自定义操作时显示 */}
+          {/* 复制JSON功能 - 独立按钮 */}
+          <Tooltip title="复制 JSON">
+            <Button
+              type="link"
+              size="small"
+              icon={<CopyOutlined />}
+              onClick={() => copyJson(record)}
+            />
+          </Tooltip>
+          
+          {/* 自定义操作下拉菜单 - 仅在有自定义操作时显示，放在最后 */}
           {customActions.length > 0 && (
             <Dropdown
               menu={{ items: dropdownItems }}
@@ -254,16 +264,6 @@ export default function DynamicTable({
               </Tooltip>
             </Dropdown>
           )}
-          
-          {/* 复制JSON功能 - 独立按钮 */}
-          <Tooltip title="复制 JSON">
-            <Button
-              type="link"
-              size="small"
-              icon={<CopyOutlined />}
-              onClick={() => copyJson(record)}
-            />
-          </Tooltip>
         </Space>
       );
     },
