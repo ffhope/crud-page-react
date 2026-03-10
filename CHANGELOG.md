@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.5] - 2025-03-10
+
+### ✨ Added
+- **纯 API 驱动**: 组件现在完全依赖 API 配置，不再有本地降级模式
+- **明确错误提示**: API 调用失败时显示清晰的错误信息
+
+### 🔧 Changed
+- **移除降级演示模式**: 完全移除本地过滤和演示模式逻辑
+- **简化组件架构**: 移除复杂的降级逻辑，提高代码可维护性
+- **改进用户体验**: 避免混淆的"演示模式"提示
+
+### 🗑️ Removed
+- 移除 `localFilter` 本地过滤函数
+- 移除 `localDataRef` 本地数据引用
+- 移除所有"演示模式"相关的提示信息
+
+### 📚 Documentation
+- 更新组件行为说明，强调 API 配置的重要性
+
 ## [0.0.4] - 2025-03-09
 
 ### ✨ Added
