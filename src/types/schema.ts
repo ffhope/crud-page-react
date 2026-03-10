@@ -186,7 +186,8 @@ export interface ActionSchema {
     title: string;
     content?: string;
   };
-  api?: ActionApiConfig;
+  api?: ActionApiConfig; // 保持向后兼容
+  apiKey?: string; // 新增：引用统一 API 配置的 key
 }
 
 export interface PaginationConfig {
@@ -204,6 +205,8 @@ export interface CrudPageSchema {
     update?: string;
     delete?: string;
     detail?: string;
+    // 支持自定义 API 配置
+    [key: string]: string | ActionApiConfig | undefined;
   };
   fields: FieldSchema[];
   actions?: ActionSchema[];

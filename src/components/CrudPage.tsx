@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Button, message, Typography } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
-import type { CrudPageSchema, ActionSchema, ApiRequest } from '../types/schema';
+import type { CrudPageSchema, ActionSchema, ActionApiConfig, ApiRequest } from '../types/schema';
 import DynamicFilter from './DynamicFilter';
 import DynamicTable from './DynamicTable';
 import DynamicForm from './DynamicForm';
@@ -20,6 +20,25 @@ function buildUrl(template: string, record: Record<string, unknown>): string {
     const value = record[fieldName];
     return value !== undefined ? String(value) : match;
   });
+}
+
+/** 处理模板数据，支持 {{fieldName}} 格式的变量替换 */
+function processTemplateData(data: Record<string, unknown>, record: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  
+  for (const [key, value] of Object.entries(data)) {
+    if (typeof value === 'string' && value.includes('{{') && value.includes('}}')) {
+      // 替换模板变量 {{fieldName}}
+      result[key] = value.replace(/\{\{(\w+)\}\}/g, (match, fieldName) => {
+        const fieldValue = record[fieldName];
+        return fieldValue !== undefined ? String(fieldValue) : match;
+      });
+    } else {
+      result[key] = value;
+    }
+  }
+  
+  return result;
 }
 
 /** 通用请求封装 */
@@ -161,31 +180,57 @@ const CrudPage: React.FC<CrudPageProps> = ({ schema, initialData = [], apiReques
       setModalState({ open: true, mode: 'edit', record });
     } else if (action.type === 'delete') {
       handleDelete(record);
-    } else if (action.type === 'custom' && action.api) {
+    } else if (action.type === 'custom') {
       // 处理自定义 action 的 API 调用
+      let apiConfig: ActionApiConfig | undefined;
+      
+      // 优先使用 apiKey 引用统一配置，向后兼容 api 直接配置
+      if (action.apiKey) {
+        const apiDef = schema.api[action.apiKey];
+        if (typeof apiDef === 'string') {
+          // 简单字符串 URL 配置
+          apiConfig = {
+            url: apiDef,
+            method: 'GET',
+            responseType: 'json'
+          };
+        } else if (apiDef && typeof apiDef === 'object') {
+          // 完整的 API 配置对象
+          apiConfig = apiDef as ActionApiConfig;
+        }
+      } else if (action.api) {
+        // 向后兼容：使用 action.api 配置
+        apiConfig = action.api;
+      }
+
+      if (!apiConfig) {
+        messageApi.error(`${action.label}未配置 API`);
+        return;
+      }
+
       try {
         // 构建 URL，动态替换占位符
-        let url = action.api.url;
-        // 替换所有 :fieldName 格式的占位符
-        url = url.replace(/:(\w+)/g, (match, fieldName) => {
+        let url = apiConfig.url;
+        url = url.replace(/:(\w+)/g, (match: string, fieldName: string) => {
           const value = record[fieldName];
           return value !== undefined ? String(value) : match;
         });
         
         // 构建请求选项
         const options: RequestInit = {
-          method: action.api.method,
+          method: apiConfig.method || 'GET',
           headers: {
             'Content-Type': 'application/json',
-            ...action.api.headers
+            ...apiConfig.headers
           }
         };
 
-        // 添加请求体数据
-        if (action.api.data && ['POST', 'PUT', 'PATCH'].includes(action.api.method)) {
+        // 处理请求体数据
+        if (apiConfig.data && ['POST', 'PUT', 'PATCH'].includes(apiConfig.method || 'GET')) {
+          // 支持模板变量替换
+          const processedData = processTemplateData(apiConfig.data, record);
           options.body = JSON.stringify({
-            ...action.api.data,
-            // 可以添加动态数据
+            ...processedData,
             recordId: record[rowKey],
             timestamp: new Date().toISOString()
           });
@@ -195,7 +240,7 @@ const CrudPage: React.FC<CrudPageProps> = ({ schema, initialData = [], apiReques
         const response = await request(url, options);
         
         // 处理特殊响应类型
-        if (action.api.responseType === 'blob') {
+        if (apiConfig.responseType === 'blob') {
           // 处理文件下载
           const blob = new Blob([response as BlobPart]);
           const downloadUrl = URL.createObjectURL(blob);
