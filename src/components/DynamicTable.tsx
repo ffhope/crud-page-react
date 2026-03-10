@@ -178,24 +178,13 @@ export default function DynamicTable({
       );
       const customActions = actions.filter(action => action.type === 'custom');
 
-      // 构建下拉菜单项
-      const dropdownItems = [
-        ...customActions.map(action => ({
-          key: action.key,
-          label: action.label,
-          onClick: () => onCustomAction?.(action.key, record),
-          danger: action.danger,
-        })),
-        ...(customActions.length > 0 ? [{
-          type: 'divider' as const,
-        }] : []),
-        {
-          key: 'copy-json',
-          label: '复制 JSON',
-          icon: <CopyOutlined />,
-          onClick: () => copyJson(record),
-        }
-      ];
+      // 构建下拉菜单项（仅包含自定义操作）
+      const dropdownItems = customActions.map(action => ({
+        key: action.key,
+        label: action.label,
+        onClick: () => onCustomAction?.(action.key, record),
+        danger: action.danger,
+      }));
 
       return (
         <Space size={4}>
@@ -249,20 +238,32 @@ export default function DynamicTable({
             return null;
           })}
           
-          {/* 其它操作下拉菜单 - 始终显示，包含复制JSON功能 */}
-          <Dropdown
-            menu={{ items: dropdownItems }}
-            trigger={['click']}
-            placement="bottomRight"
-          >
-            <Tooltip title="其它操作">
-              <Button
-                type="link"
-                size="small"
-                icon={<MoreOutlined />}
-              />
-            </Tooltip>
-          </Dropdown>
+          {/* 自定义操作下拉菜单 - 仅在有自定义操作时显示 */}
+          {customActions.length > 0 && (
+            <Dropdown
+              menu={{ items: dropdownItems }}
+              trigger={['click']}
+              placement="bottomRight"
+            >
+              <Tooltip title="其它操作">
+                <Button
+                  type="link"
+                  size="small"
+                  icon={<MoreOutlined />}
+                />
+              </Tooltip>
+            </Dropdown>
+          )}
+          
+          {/* 复制JSON功能 - 独立按钮 */}
+          <Tooltip title="复制 JSON">
+            <Button
+              type="link"
+              size="small"
+              icon={<CopyOutlined />}
+              onClick={() => copyJson(record)}
+            />
+          </Tooltip>
         </Space>
       );
     },
