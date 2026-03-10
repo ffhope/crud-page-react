@@ -1,5 +1,5 @@
-import { Table, Tag, Switch, Space, Button, Popconfirm, Tooltip, message } from 'antd';
-import { EyeOutlined, EditOutlined, DeleteOutlined, CopyOutlined } from '@ant-design/icons';
+import { Table, Tag, Switch, Space, Button, Popconfirm, Tooltip, message, Dropdown } from 'antd';
+import { EyeOutlined, EditOutlined, DeleteOutlined, CopyOutlined, MoreOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import type { CrudPageSchema, FieldSchema, TableColumnConfig, SelectOption } from '../types/schema';
@@ -168,10 +168,38 @@ export default function DynamicTable({
     title: '操作',
     key: '__actions',
     fixed: 'right',
-    width: (schema.actions?.length ?? 0) * 60 + 60,
-    render: (_: unknown, record: Record<string, unknown>) => (
-      <Space size={4}>
-        {(schema.actions ?? []).map((action) => {
+    width: 200, // 固定宽度，因为现在有下拉菜单
+    render: (_: unknown, record: Record<string, unknown>) => {
+      const actions = schema.actions ?? [];
+      
+      // 分离基础操作和自定义操作
+      const basicActions = actions.filter(action => 
+        action.type === 'view' || action.type === 'edit' || action.type === 'delete'
+      );
+      const customActions = actions.filter(action => action.type === 'custom');
+
+      // 构建下拉菜单项
+      const dropdownItems = [
+        ...customActions.map(action => ({
+          key: action.key,
+          label: action.label,
+          onClick: () => onCustomAction?.(action.key, record),
+          danger: action.danger,
+        })),
+        ...(customActions.length > 0 ? [{
+          type: 'divider' as const,
+        }] : []),
+        {
+          key: 'copy-json',
+          label: '复制 JSON',
+          icon: <CopyOutlined />,
+          onClick: () => copyJson(record),
+        }
+      ];
+
+      return (
+        <Space size={4}>
+          {basicActions.map((action) => {
             if (action.type === 'view') {
               return (
                 <Tooltip key={action.key} title={action.label}>
@@ -218,29 +246,27 @@ export default function DynamicTable({
                 </Popconfirm>
               );
             }
-            return (
-              <Tooltip key={action.key} title={action.label}>
-                <Button
-                  type="link"
-                  size="small"
-                  onClick={() => onCustomAction?.(action.key, record)}
-                >
-                  {action.label}
-                </Button>
-              </Tooltip>
-            );
+            return null;
           })}
-          <Tooltip title="复制 JSON">
-            <Button
-              type="link"
-              size="small"
-              icon={<CopyOutlined />}
-              onClick={() => copyJson(record)}
-            />
-          </Tooltip>
+          
+          {/* 其它操作下拉菜单 - 始终显示，包含复制JSON功能 */}
+          <Dropdown
+            menu={{ items: dropdownItems }}
+            trigger={['click']}
+            placement="bottomRight"
+          >
+            <Tooltip title="其它操作">
+              <Button
+                type="link"
+                size="small"
+                icon={<MoreOutlined />}
+              />
+            </Tooltip>
+          </Dropdown>
         </Space>
-      ),
-    });
+      );
+    },
+  });
 
   return (
     <Table

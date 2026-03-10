@@ -2,49 +2,22 @@
 
 一个基于 React + Ant Design 的动态 CRUD 组件库，支持通过 JSON Schema 配置生成完整的增删改查界面。
 
-## 🌐 在线演示
-
-**[https://crud.fufanghao.space/](https://crud.fufanghao.space/)**
-
-- 🎮 **Demo 示例** - 查看完整功能演示和字段类型
-- 🛠️ **配置生成器** - 可视化配置工具，零代码生成 CRUD 页面  
-- 🤖 **AI 提示词** - 使用 AI 从接口文档生成配置
-
 ## 特性
 
-- 🚀 **零代码配置** - 通过 JSON Schema 配置即可生成完整 CRUD 界面
-- 📝 **丰富的表单组件** - 支持 15+ 种表单控件类型
-- 🔍 **智能筛选** - 自动生成筛选器，支持范围查询
-- 📊 **灵活表格** - 可配置列宽、排序、固定列等
-- 🎨 **Raw JSON 模式** - 支持原始 JSON 编辑和查看
-- 🔌 **自定义 API** - 支持自定义 API 请求函数和动态 URL 参数
-- 🌐 **动态 URL 参数** - 支持任意字段作为 URL 参数 (`:id`, `:orderNo`, `:customerName` 等)
-- ⚡ **自定义操作** - 支持配置自定义按钮操作和 API 调用
-- 📱 **响应式设计** - 适配移动端和桌面端
-- 🎯 **TypeScript 支持** - 完整的类型定义
+- 🚀 **零代码配置** - 通过 JSON Schema 快速生成 CRUD 界面
+- 🎨 **美观易用** - 基于 Ant Design 设计语言
+- 🔧 **高度可定制** - 支持自定义 API、字段配置、操作按钮
+- 📱 **响应式设计** - 自适应各种屏幕尺寸
+- 🔒 **类型安全** - 完整的 TypeScript 类型定义
+- 🎯 **操作分组** - 自定义操作自动折叠到下拉菜单
 
 ## 安装
 
 ```bash
 npm install crud-page-react
-# 或
-yarn add crud-page-react
-```
-
-### 依赖要求
-
-```json
-{
-  "react": ">=16.8.0",
-  "react-dom": ">=16.8.0",
-  "antd": ">=5.0.0",
-  "dayjs": ">=1.11.0"
-}
 ```
 
 ## 快速开始
-
-### 基础用法
 
 ```tsx
 import React from 'react';
@@ -55,22 +28,10 @@ const schema: CrudPageSchema = {
   id: 'users',
   title: '用户管理',
   api: {
-    list: {
-      url: '/api/users',
-      method: 'GET'
-    },
-    create: {
-      url: '/api/users',
-      method: 'POST'
-    },
-    update: {
-      url: '/api/users/:id',
-      method: 'PUT'
-    },
-    delete: {
-      url: '/api/users/:id',
-      method: 'DELETE'
-    },
+    list: { url: '/api/users', method: 'GET' },
+    create: { url: '/api/users', method: 'POST' },
+    update: { url: '/api/users/:id', method: 'PUT' },
+    delete: { url: '/api/users/:id', method: 'DELETE' },
   },
   fields: [
     {
@@ -95,260 +56,50 @@ const schema: CrudPageSchema = {
       filter: true,
       table: true,
       form: { required: true },
-      rules: ['email'],
-    },
-    {
-      key: 'status',
-      label: '状态',
-      type: 'string',
-      widget: 'select',
-      config: {
-        options: [
-          { label: '启用', value: 'active' },
-          { label: '禁用', value: 'inactive' },
-        ],
-      },
-      filter: true,
-      table: true,
-      form: true,
     },
   ],
   rowKey: 'id',
 };
 
 function App() {
-  return (
-    <div>
-      <CrudPage schema={schema} />
-    </div>
-  );
+  return <CrudPage schema={schema} />;
 }
-
-export default App;
 ```
 
-### 扩展 API 配置
+## 新特性：操作按钮分组 (v0.1.3)
 
-v0.1.0+ 版本要求使用完整的 API 配置对象，支持自定义 HTTP 方法、请求头、请求体数据和模板变量：
+自定义操作现在会自动折叠到"其它操作"下拉菜单中，保持界面整洁：
 
 ```tsx
-const advancedSchema: CrudPageSchema = {
-  id: 'orders',
-  title: '订单管理',
-  api: {
-    // 基础配置
-    list: {
-      url: '/api/orders',
-      method: 'GET'
-    },
-    
-    // 扩展配置
-    create: {
-      url: '/api/orders',
-      method: 'POST',
-      headers: {
-        'X-Request-Source': 'admin-panel'
-      },
-      data: {
-        source: 'web',
-        createdBy: '{{currentUser}}',
-        timestamp: '{{timestamp}}'
-      }
-    },
-    
-    update: {
-      url: '/api/orders/:id',
-      method: 'PUT',
-      data: {
-        updatedBy: '{{currentUser}}',
-        updateTime: '{{timestamp}}'
-      }
-    },
-    
-    delete: {
-      url: '/api/orders/:orderNo',
-      method: 'DELETE',
-      data: {
-        deletedBy: '{{currentUser}}',
-        deleteReason: '{{deleteReason}}',
-        timestamp: '{{timestamp}}'
-      }
-    }
-  },
+const schema: CrudPageSchema = {
   // ... 其他配置
-};
-```
-
-### 支持的配置选项
-
-- **HTTP 方法**：GET、POST、PUT、PATCH、DELETE
-- **自定义请求头**：添加认证、来源标识等
-- **请求体数据**：固定参数和动态参数
-- **模板变量**：`{{fieldName}}` 格式的动态值替换
-- **URL 占位符**：`:fieldName` 格式的动态 URL 构建
-
-### 💥 Breaking Changes (v0.1.0)
-
-v0.1.0 版本移除了简单字符串配置支持，所有 API 配置必须使用对象格式：
-
-```tsx
-// ❌ 不再支持 (v0.0.x)
-api: {
-  list: '/api/users',
-  create: '/api/users'
-}
-
-// ✅ 必须使用 (v0.1.0+)
-api: {
-  list: {
-    url: '/api/users',
-    method: 'GET'
-  },
-  create: {
-    url: '/api/users',
-    method: 'POST'
-  }
-}
-```
-
-## 动态 URL 参数
-
-支持在 API 配置中使用任意字段作为 URL 参数：
-
-```tsx
-const schema = {
-  api: {
-    list: '/api/orders',
-    create: '/api/orders',
-    update: '/api/orders/:id',        // 使用 id 字段
-    delete: '/api/orders/:orderNo',   // 使用 orderNo 字段
-    detail: '/api/orders/:id',
-  },
   actions: [
-    {
-      key: 'track',
-      label: '物流跟踪',
-      type: 'custom',
-      api: {
-        url: '/api/tracking/:orderNo',  // 使用 orderNo 字段
-        method: 'GET',
-        responseType: 'json'
-      }
-    },
-    {
-      key: 'notify',
-      label: '通知客户',
-      type: 'custom', 
-      api: {
-        url: '/api/notify/:customerName', // 使用 customerName 字段
-        method: 'POST',
-        data: {
-          message: '您的订单状态已更新'
-        }
-      }
-    }
+    // 基础操作 - 显示为独立按钮
+    { key: 'view', label: '查看', type: 'view' },
+    { key: 'edit', label: '编辑', type: 'edit' },
+    { key: 'delete', label: '删除', type: 'delete' },
+    
+    // 自定义操作 - 自动折叠到下拉菜单
+    { key: 'approve', label: '审批', type: 'custom', apiKey: 'approve' },
+    { key: 'reject', label: '拒绝', type: 'custom', apiKey: 'reject', danger: true },
+    { key: 'export', label: '导出', type: 'custom', apiKey: 'export' },
   ],
-  // ... 其他配置
 };
 ```
 
-### 支持的占位符格式
-- `:id` → 记录中的 `id` 字段值
-- `:orderNo` → 记录中的 `orderNo` 字段值  
-- `:customerName` → 记录中的 `customerName` 字段值
-- 任意 `:fieldName` → 记录中的 `fieldName` 字段值
+### 操作类型
 
-## 自定义 API 请求
+- **基础操作** (`view`, `edit`, `delete`) - 显示为独立的图标按钮
+- **自定义操作** (`custom`) - 折叠到"其它操作"下拉菜单中
+- **复制功能** - 始终在下拉菜单中提供"复制 JSON"功能
 
-```tsx
-import { CrudPage, ApiRequest } from 'crud-page-react';
+## 文档
 
-// 自定义 API 请求函数
-const customApiRequest: ApiRequest = async (url, options) => {
-  const token = localStorage.getItem('token');
-  const response = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : '',
-      ...options?.headers,
-    },
-    ...options,
-  });
-  
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  }
-  
-  return response.json();
-};
+更多详细文档和示例，请查看 [example.md](./example.md)
 
-// 使用自定义 API 请求
-<CrudPage
-  schema={schema}
-  apiRequest={customApiRequest}
-/>
-```
+## 更新日志
 
-## API 文档
-
-### CrudPageProps
-
-| 属性 | 类型 | 必填 | 默认值 | 说明 |
-|------|------|------|--------|------|
-| schema | CrudPageSchema | ✓ | - | 页面配置 schema |
-| initialData | Record<string, unknown>[] | ✗ | [] | 初始数据，API 失败时作为降级数据 |
-| apiRequest | ApiRequest | ✗ | 内置 fetch | 自定义 API 请求函数 |
-
-### ApiRequest
-
-```typescript
-interface ApiRequest {
-  <T = unknown>(url: string, options?: RequestInit): Promise<T>;
-}
-```
-
-### CrudPageSchema
-
-完整的 schema 配置请参考类型定义文件。
-
-## 字段类型支持
-
-- `string` - 字符串
-- `number` - 数字  
-- `boolean` - 布尔值
-- `date` - 日期
-- `datetime` - 日期时间
-- `array` - 数组
-- `objectArray` - 对象数组
-
-## 组件类型支持
-
-- `input` - 输入框
-- `textarea` - 文本域
-- `inputNumber` - 数字输入
-- `select` - 下拉选择
-- `multiselect` - 多选下拉
-- `radio` - 单选按钮
-- `checkbox` - 复选框
-- `switch` - 开关
-- `datePicker` - 日期选择
-- `rangePicker` - 日期范围
-- `timePicker` - 时间选择
-- `editableTable` - 可编辑表格
-- `jsonInput` - JSON 编辑器
-
-## 开发
-
-```bash
-# 安装依赖
-npm install
-
-# 开发模式
-npm run dev
-
-# 构建
-npm run build
-```
+查看 [CHANGELOG.md](./CHANGELOG.md) 了解版本更新内容。
 
 ## 许可证
 
