@@ -41,6 +41,25 @@ function processTemplateData(data: Record<string, unknown>, record: Record<strin
   return result;
 }
 
+/** 解析 API 配置，支持字符串和对象两种格式 */
+function parseApiConfig(apiDef: string | ActionApiConfig | undefined): ActionApiConfig | undefined {
+  if (!apiDef) return undefined;
+  
+  if (typeof apiDef === 'string') {
+    // 简单字符串 URL 配置
+    return {
+      url: apiDef,
+      method: 'GET',
+      responseType: 'json'
+    };
+  } else if (typeof apiDef === 'object') {
+    // 完整的 API 配置对象
+    return apiDef as ActionApiConfig;
+  }
+  
+  return undefined;
+}
+
 /** 通用请求封装 */
 async function apiRequest<T = unknown>(
   url: string,
@@ -106,7 +125,9 @@ const CrudPage: React.FC<CrudPageProps> = ({ schema, initialData = [], apiReques
     p: number = page,
     ps: number = pageSize,
   ) => {
-    if (!schema.api.list) {
+    const listApiConfig = parseApiConfig(schema.api.list);
+    
+    if (!listApiConfig) {
       // 没有配置 API，使用初始数据
       initializeData();
       return;
@@ -114,11 +135,38 @@ const CrudPage: React.FC<CrudPageProps> = ({ schema, initialData = [], apiReques
 
     setLoading(true);
     try {
+      // 构建查询参数
       const query = new URLSearchParams({ page: String(p), pageSize: String(ps) });
       Object.entries(params).forEach(([k, v]) => {
         if (v !== undefined && v !== null && v !== '') query.set(k, String(v));
       });
-      const json = await request(`${schema.api.list}?${query}`);
+      
+      // 构建请求选项
+      const options: RequestInit = {
+        method: listApiConfig.method || 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...listApiConfig.headers
+        }
+      };
+
+      // 如果是 POST 请求，将查询参数放到请求体中
+      let url = listApiConfig.url;
+      if (listApiConfig.method === 'POST') {
+        const queryParams: Record<string, string> = {};
+        query.forEach((value, key) => {
+          queryParams[key] = value;
+        });
+        const requestData = {
+          ...queryParams,
+          ...listApiConfig.data
+        };
+        options.body = JSON.stringify(requestData);
+      } else {
+        url = `${url}?${query}`;
+      }
+
+      const json = await request(url, options);
       const { list, total: tot } = extractListResponse(json);
       setData(list);
       setTotal(tot);
@@ -157,20 +205,48 @@ const CrudPage: React.FC<CrudPageProps> = ({ schema, initialData = [], apiReques
 
   // ---------- 删除 ----------
   const handleDelete = useCallback(async (record: Record<string, unknown>) => {
-    if (!schema.api.delete) {
+    const deleteApiConfig = parseApiConfig(schema.api.delete);
+    
+    if (!deleteApiConfig) {
       messageApi.error('删除功能未配置');
       return;
     }
 
     try {
-      await request(buildUrl(schema.api.delete, record), { method: 'DELETE' });
+      // 构建 URL，动态替换占位符
+      let url = deleteApiConfig.url;
+      url = url.replace(/:(\w+)/g, (match: string, fieldName: string) => {
+        const value = record[fieldName];
+        return value !== undefined ? String(value) : match;
+      });
+      
+      // 构建请求选项
+      const options: RequestInit = {
+        method: deleteApiConfig.method || 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...deleteApiConfig.headers
+        }
+      };
+
+      // 处理请求体数据
+      if (deleteApiConfig.data && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(deleteApiConfig.method || 'DELETE')) {
+        const processedData = processTemplateData(deleteApiConfig.data, record);
+        options.body = JSON.stringify({
+          ...processedData,
+          recordId: record[rowKey],
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      await request(url, options);
       messageApi.success('删除成功');
       fetchList();
     } catch (error) {
       console.error('Delete failed:', error);
       messageApi.error('删除失败，请稍后重试');
     }
-  }, [request, schema.api.delete, fetchList, messageApi]);
+  }, [request, schema.api.delete, fetchList, messageApi, rowKey]);
 
   // ---------- 操作列点击 ----------
   const handleAction = useCallback(async (action: ActionSchema, record: Record<string, unknown>) => {
@@ -273,16 +349,37 @@ const CrudPage: React.FC<CrudPageProps> = ({ schema, initialData = [], apiReques
     const isCreate = modalState.mode === 'create';
 
     if (isCreate) {
-      if (!schema.api.create) {
+      const createApiConfig = parseApiConfig(schema.api.create);
+      
+      if (!createApiConfig) {
         messageApi.error('新增功能未配置');
         return;
       }
 
       try {
-        await request(schema.api.create, {
-          method: 'POST',
-          body: JSON.stringify(values),
-        });
+        // 构建请求选项
+        const options: RequestInit = {
+          method: createApiConfig.method || 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...createApiConfig.headers
+          }
+        };
+
+        // 处理请求体数据
+        let requestData = { ...values };
+        if (createApiConfig.data) {
+          const processedData = processTemplateData(createApiConfig.data, values);
+          requestData = {
+            ...requestData,
+            ...processedData,
+            timestamp: new Date().toISOString()
+          };
+        }
+        
+        options.body = JSON.stringify(requestData);
+
+        await request(createApiConfig.url, options);
         messageApi.success('新增成功');
         setModalState({ open: false, mode: 'create' });
         fetchList();
@@ -291,16 +388,44 @@ const CrudPage: React.FC<CrudPageProps> = ({ schema, initialData = [], apiReques
         messageApi.error('新增失败，请稍后重试');
       }
     } else {
-      if (!schema.api.update) {
+      const updateApiConfig = parseApiConfig(schema.api.update);
+      
+      if (!updateApiConfig) {
         messageApi.error('编辑功能未配置');
         return;
       }
 
       try {
-        await request(buildUrl(schema.api.update, values), {
-          method: 'PUT',
-          body: JSON.stringify(values),
+        // 构建 URL，动态替换占位符
+        let url = updateApiConfig.url;
+        url = url.replace(/:(\w+)/g, (match: string, fieldName: string) => {
+          const value = values[fieldName];
+          return value !== undefined ? String(value) : match;
         });
+
+        // 构建请求选项
+        const options: RequestInit = {
+          method: updateApiConfig.method || 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...updateApiConfig.headers
+          }
+        };
+
+        // 处理请求体数据
+        let requestData = { ...values };
+        if (updateApiConfig.data) {
+          const processedData = processTemplateData(updateApiConfig.data, values);
+          requestData = {
+            ...requestData,
+            ...processedData,
+            timestamp: new Date().toISOString()
+          };
+        }
+        
+        options.body = JSON.stringify(requestData);
+
+        await request(url, options);
         messageApi.success('编辑成功');
         setModalState({ open: false, mode: 'create' });
         fetchList();

@@ -1,6 +1,6 @@
 {
   "name": "crud-page-react",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "一个基于 React + Ant Design 的动态 CRUD 组件库，支持通过 JSON Schema 配置生成完整的增删改查界面",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",

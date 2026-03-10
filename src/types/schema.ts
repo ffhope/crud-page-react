@@ -200,11 +200,11 @@ export interface CrudPageSchema {
   id: string;
   title: string;
   api: {
-    list: string;
-    create?: string;
-    update?: string;
-    delete?: string;
-    detail?: string;
+    list: string | ActionApiConfig;
+    create?: string | ActionApiConfig;
+    update?: string | ActionApiConfig;
+    delete?: string | ActionApiConfig;
+    detail?: string | ActionApiConfig;
     // 支持自定义 API 配置
     [key: string]: string | ActionApiConfig | undefined;
   };
