@@ -9,7 +9,9 @@
 - 🔍 **智能筛选** - 自动生成筛选器，支持范围查询
 - 📊 **灵活表格** - 可配置列宽、排序、固定列等
 - 🎨 **Raw JSON 模式** - 支持原始 JSON 编辑和查看
-- 🔌 **自定义 API** - 支持自定义 API 请求函数
+- 🔌 **自定义 API** - 支持自定义 API 请求函数和动态 URL 参数
+- 🌐 **动态 URL 参数** - 支持任意字段作为 URL 参数 (`:id`, `:orderNo`, `:customerName` 等)
+- ⚡ **自定义操作** - 支持配置自定义按钮操作和 API 调用
 - 📱 **响应式设计** - 适配移动端和桌面端
 - 🎯 **TypeScript 支持** - 完整的类型定义
 
@@ -102,6 +104,53 @@ function App() {
 
 export default App;
 ```
+
+## 动态 URL 参数
+
+支持在 API 配置中使用任意字段作为 URL 参数：
+
+```tsx
+const schema = {
+  api: {
+    list: '/api/orders',
+    create: '/api/orders',
+    update: '/api/orders/:id',        // 使用 id 字段
+    delete: '/api/orders/:orderNo',   // 使用 orderNo 字段
+    detail: '/api/orders/:id',
+  },
+  actions: [
+    {
+      key: 'track',
+      label: '物流跟踪',
+      type: 'custom',
+      api: {
+        url: '/api/tracking/:orderNo',  // 使用 orderNo 字段
+        method: 'GET',
+        responseType: 'json'
+      }
+    },
+    {
+      key: 'notify',
+      label: '通知客户',
+      type: 'custom', 
+      api: {
+        url: '/api/notify/:customerName', // 使用 customerName 字段
+        method: 'POST',
+        data: {
+          message: '您的订单状态已更新'
+        }
+      }
+    }
+  ],
+  // ... 其他配置
+};
+```
+
+### 支持的占位符格式
+- `:id` → 记录中的 `id` 字段值
+- `:orderNo` → 记录中的 `orderNo` 字段值  
+- `:customerName` → 记录中的 `customerName` 字段值
+- 任意 `:fieldName` → 记录中的 `fieldName` 字段值
 
 ## 自定义 API 请求
 
