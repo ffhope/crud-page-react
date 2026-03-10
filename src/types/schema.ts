@@ -165,17 +165,28 @@ export interface ActionPermission {
   condition?: string;
 }
 
+export interface ActionApiConfig {
+  url: string;
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  data?: Record<string, unknown>;
+  headers?: Record<string, string>;
+  responseType?: 'json' | 'blob' | 'text';
+}
+
 export interface ActionSchema {
   key: string;
   label: string;
   type: ActionType;
   icon?: string;
   danger?: boolean;
+  color?: string;
   permission?: ActionPermission;
+  condition?: Record<string, unknown>;
   confirm?: {
     title: string;
     content?: string;
   };
+  api?: ActionApiConfig;
 }
 
 export interface PaginationConfig {

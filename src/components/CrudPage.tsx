@@ -14,9 +14,12 @@ interface CrudPageProps {
   apiRequest?: ApiRequest;
 }
 
-/** 替换 URL 模板中的 :id */
-function buildUrl(template: string, id: unknown): string {
-  return template.replace(/:id/, String(id));
+/** 动态替换 URL 模板中的占位符 */
+function buildUrl(template: string, record: Record<string, unknown>): string {
+  return template.replace(/:(\w+)/g, (match, fieldName) => {
+    const value = record[fieldName];
+    return value !== undefined ? String(value) : match;
+  });
 }
 
 /** 通用请求封装 */
@@ -141,7 +144,7 @@ const CrudPage: React.FC<CrudPageProps> = ({ schema, initialData = [], apiReques
     const id = record[rowKey];
     if (schema.api.delete) {
       try {
-        await request(buildUrl(schema.api.delete, id), { method: 'DELETE' });
+        await request(buildUrl(schema.api.delete, record), { method: 'DELETE' });
         messageApi.success('删除成功');
         fetchList();
         return;
@@ -155,15 +158,74 @@ const CrudPage: React.FC<CrudPageProps> = ({ schema, initialData = [], apiReques
   }, [request, schema.api.delete, rowKey, fetchList, localFilter, filterParams, page, pageSize, messageApi]);
 
   // ---------- 操作列点击 ----------
-  const handleAction = useCallback((action: ActionSchema, record: Record<string, unknown>) => {
+  const handleAction = useCallback(async (action: ActionSchema, record: Record<string, unknown>) => {
     if (action.type === 'view') {
       setModalState({ open: true, mode: 'view', record });
     } else if (action.type === 'edit') {
       setModalState({ open: true, mode: 'edit', record });
     } else if (action.type === 'delete') {
       handleDelete(record);
+    } else if (action.type === 'custom' && action.api) {
+      // 处理自定义 action 的 API 调用
+      try {
+        // 构建 URL，动态替换占位符
+        let url = action.api.url;
+        // 替换所有 :fieldName 格式的占位符
+        url = url.replace(/:(\w+)/g, (match, fieldName) => {
+          const value = record[fieldName];
+          return value !== undefined ? String(value) : match;
+        });
+        
+        // 构建请求选项
+        const options: RequestInit = {
+          method: action.api.method,
+          headers: {
+            'Content-Type': 'application/json',
+            ...action.api.headers
+          }
+        };
+
+        // 添加请求体数据
+        if (action.api.data && ['POST', 'PUT', 'PATCH'].includes(action.api.method)) {
+          options.body = JSON.stringify({
+            ...action.api.data,
+            // 可以添加动态数据
+            recordId: record[rowKey],
+            timestamp: new Date().toISOString()
+          });
+        }
+
+        // 调用 API
+        const response = await request(url, options);
+        
+        // 处理特殊响应类型
+        if (action.api.responseType === 'blob') {
+          // 处理文件下载
+          const blob = new Blob([response as BlobPart]);
+          const downloadUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = `${action.key}.pdf`;
+          a.click();
+          URL.revokeObjectURL(downloadUrl);
+          messageApi.success(`${action.label}成功`);
+        } else {
+          // 处理 JSON 响应
+          const result = response as { success?: boolean; message?: string };
+          if (result.success !== false) {
+            messageApi.success(`${action.label}成功`);
+            // 刷新数据
+            await fetchList();
+          } else {
+            messageApi.error(result.message || `${action.label}失败`);
+          }
+        }
+      } catch (error) {
+        console.error(`Action ${action.key} failed:`, error);
+        messageApi.error(`${action.label}失败`);
+      }
     }
-  }, [handleDelete]);
+  }, [handleDelete, rowKey, request, messageApi, fetchList]);
 
   // ---------- 新增 / 编辑提交 ----------
   const handleFormOk = useCallback(async (values: Record<string, unknown>) => {
@@ -193,7 +255,7 @@ const CrudPage: React.FC<CrudPageProps> = ({ schema, initialData = [], apiReques
       const id = values[rowKey];
       if (schema.api.update) {
         try {
-          await request(buildUrl(schema.api.update, id), {
+          await request(buildUrl(schema.api.update, values), {
             method: 'PUT',
             body: JSON.stringify(values),
           });
