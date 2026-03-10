@@ -2,6 +2,46 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.0] - 2025-03-10
+
+### 💥 Breaking Changes
+- **移除简单字符串 API 配置支持**: 不再支持简单字符串 URL 配置，所有 API 配置必须使用完整的配置对象格式
+- **强制使用扩展配置对象**: `CrudPageSchema.api` 只接受 `ActionApiConfig` 对象
+
+### 🗑️ Removed
+- 移除 `parseApiConfig` 函数和向后兼容逻辑
+- 移除简单字符串 URL 配置支持
+
+### 🔧 Changed
+- 更新类型定义，统一 API 配置格式
+- 简化组件代码，直接使用 API 配置对象
+- 配置生成器现在生成完整的 API 配置对象
+
+### 📋 Migration Guide
+```javascript
+// 之前 (v0.0.x)
+{
+  api: {
+    list: "/api/users",
+    create: "/api/users"
+  }
+}
+
+// 现在 (v0.1.0+)
+{
+  api: {
+    list: {
+      url: "/api/users",
+      method: "GET"
+    },
+    create: {
+      url: "/api/users", 
+      method: "POST"
+    }
+  }
+}
+```
+
 ## [0.0.7] - 2025-03-10
 
 ### ✨ Added

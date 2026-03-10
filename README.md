@@ -47,10 +47,22 @@ const schema: CrudPageSchema = {
   id: 'users',
   title: '用户管理',
   api: {
-    list: '/api/users',
-    create: '/api/users',
-    update: '/api/users/:id',
-    delete: '/api/users/:id',
+    list: {
+      url: '/api/users',
+      method: 'GET'
+    },
+    create: {
+      url: '/api/users',
+      method: 'POST'
+    },
+    update: {
+      url: '/api/users/:id',
+      method: 'PUT'
+    },
+    delete: {
+      url: '/api/users/:id',
+      method: 'DELETE'
+    },
   },
   fields: [
     {
@@ -109,17 +121,20 @@ export default App;
 
 ### 扩展 API 配置
 
-v0.0.7+ 版本支持更强大的 API 配置，包括自定义 HTTP 方法、请求头、请求体数据和模板变量：
+v0.1.0+ 版本要求使用完整的 API 配置对象，支持自定义 HTTP 方法、请求头、请求体数据和模板变量：
 
 ```tsx
 const advancedSchema: CrudPageSchema = {
   id: 'orders',
   title: '订单管理',
   api: {
-    // 简单字符串配置（向后兼容）
-    list: '/api/orders',
+    // 基础配置
+    list: {
+      url: '/api/orders',
+      method: 'GET'
+    },
     
-    // 扩展对象配置
+    // 扩展配置
     create: {
       url: '/api/orders',
       method: 'POST',
@@ -156,13 +171,37 @@ const advancedSchema: CrudPageSchema = {
 };
 ```
 
-### 支持的扩展配置
+### 支持的配置选项
 
 - **HTTP 方法**：GET、POST、PUT、PATCH、DELETE
 - **自定义请求头**：添加认证、来源标识等
 - **请求体数据**：固定参数和动态参数
 - **模板变量**：`{{fieldName}}` 格式的动态值替换
 - **URL 占位符**：`:fieldName` 格式的动态 URL 构建
+
+### 💥 Breaking Changes (v0.1.0)
+
+v0.1.0 版本移除了简单字符串配置支持，所有 API 配置必须使用对象格式：
+
+```tsx
+// ❌ 不再支持 (v0.0.x)
+api: {
+  list: '/api/users',
+  create: '/api/users'
+}
+
+// ✅ 必须使用 (v0.1.0+)
+api: {
+  list: {
+    url: '/api/users',
+    method: 'GET'
+  },
+  create: {
+    url: '/api/users',
+    method: 'POST'
+  }
+}
+```
 
 ## 动态 URL 参数
 
