@@ -56,8 +56,8 @@ const CrudPage: React.FC<CrudPageProps> = ({ schema, initialData = [], apiReques
   // 使用传入的apiRequest或默认的
   const request = customApiRequest || apiRequest;
 
-  // 本地兜底数据（API 失败时使用）
-  const localDataRef = useRef<Record<string, unknown>[]>(initialData);
+  // 初始数据引用
+  const initialDataRef = useRef<Record<string, unknown>[]>(initialData);
 
   const [data, setData] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(false);
@@ -73,29 +73,13 @@ const CrudPage: React.FC<CrudPageProps> = ({ schema, initialData = [], apiReques
 
   const [messageApi, contextHolder] = message.useMessage();
 
-  // ---------- 本地过滤（API 失败时兜底） ----------
-  const localFilter = useCallback(
-    (params: Record<string, unknown>, p: number, ps: number) => {
-      const filtered = localDataRef.current.filter(row => {
-        return Object.entries(params).every(([key, val]) => {
-          if (val === undefined || val === null || val === '') return true;
-          if (key.endsWith('_min')) return Number(row[key.slice(0, -4)]) >= Number(val);
-          if (key.endsWith('_max')) return Number(row[key.slice(0, -4)]) <= Number(val);
-          if (key.endsWith('_start') || key.endsWith('_end')) return true;
-          const rowVal = row[key];
-          if (Array.isArray(rowVal)) {
-            return Array.isArray(val) ? val.some(v => rowVal.includes(v)) : rowVal.includes(val);
-          }
-          if (typeof val === 'string') return String(rowVal).toLowerCase().includes(val.toLowerCase());
-          return rowVal === val;
-        });
-      });
-      const start = (p - 1) * ps;
-      setData(filtered.slice(start, start + ps));
-      setTotal(filtered.length);
-    },
-    [],
-  );
+  // ---------- 初始化数据 ----------
+  const initializeData = useCallback(() => {
+    if (initialDataRef.current.length > 0) {
+      setData(initialDataRef.current);
+      setTotal(initialDataRef.current.length);
+    }
+  }, []);
 
   // ---------- 获取列表 ----------
   const fetchList = useCallback(async (
@@ -103,6 +87,12 @@ const CrudPage: React.FC<CrudPageProps> = ({ schema, initialData = [], apiReques
     p: number = page,
     ps: number = pageSize,
   ) => {
+    if (!schema.api.list) {
+      // 没有配置 API，使用初始数据
+      initializeData();
+      return;
+    }
+
     setLoading(true);
     try {
       const query = new URLSearchParams({ page: String(p), pageSize: String(ps) });
@@ -113,13 +103,20 @@ const CrudPage: React.FC<CrudPageProps> = ({ schema, initialData = [], apiReques
       const { list, total: tot } = extractListResponse(json);
       setData(list);
       setTotal(tot);
-    } catch {
-      // API 不可用 → 本地演示模式
-      localFilter(params, p, ps);
+    } catch (error) {
+      console.error('Failed to fetch list:', error);
+      messageApi.error('获取数据失败，请检查网络连接或联系管理员');
+      // 如果有初始数据，显示初始数据
+      if (initialDataRef.current.length > 0) {
+        initializeData();
+      } else {
+        setData([]);
+        setTotal(0);
+      }
     } finally {
       setLoading(false);
     }
-  }, [request, schema.api.list, filterParams, page, pageSize, localFilter]);
+  }, [request, schema.api.list, filterParams, page, pageSize, initializeData, messageApi]);
 
   // 初始加载 & 参数变化时重新请求
   useEffect(() => {
@@ -141,21 +138,20 @@ const CrudPage: React.FC<CrudPageProps> = ({ schema, initialData = [], apiReques
 
   // ---------- 删除 ----------
   const handleDelete = useCallback(async (record: Record<string, unknown>) => {
-    const id = record[rowKey];
-    if (schema.api.delete) {
-      try {
-        await request(buildUrl(schema.api.delete, record), { method: 'DELETE' });
-        messageApi.success('删除成功');
-        fetchList();
-        return;
-      } catch {
-        // 降级本地
-      }
+    if (!schema.api.delete) {
+      messageApi.error('删除功能未配置');
+      return;
     }
-    localDataRef.current = localDataRef.current.filter(r => r[rowKey] !== id);
-    localFilter(filterParams, page, pageSize);
-    messageApi.success('删除成功（演示模式）');
-  }, [request, schema.api.delete, rowKey, fetchList, localFilter, filterParams, page, pageSize, messageApi]);
+
+    try {
+      await request(buildUrl(schema.api.delete, record), { method: 'DELETE' });
+      messageApi.success('删除成功');
+      fetchList();
+    } catch (error) {
+      console.error('Delete failed:', error);
+      messageApi.error('删除失败，请稍后重试');
+    }
+  }, [request, schema.api.delete, fetchList, messageApi]);
 
   // ---------- 操作列点击 ----------
   const handleAction = useCallback(async (action: ActionSchema, record: Record<string, unknown>) => {
@@ -232,52 +228,44 @@ const CrudPage: React.FC<CrudPageProps> = ({ schema, initialData = [], apiReques
     const isCreate = modalState.mode === 'create';
 
     if (isCreate) {
-      if (schema.api.create) {
-        try {
-          await request(schema.api.create, {
-            method: 'POST',
-            body: JSON.stringify(values),
-          });
-          messageApi.success('新增成功');
-          setModalState({ open: false, mode: 'create' });
-          fetchList();
-          return;
-        } catch {
-          // 降级本地
-        }
+      if (!schema.api.create) {
+        messageApi.error('新增功能未配置');
+        return;
       }
-      const newRecord = { [rowKey]: `local-${Date.now()}`, ...values };
-      localDataRef.current = [newRecord, ...localDataRef.current];
-      localFilter(filterParams, 1, pageSize);
-      setPage(1);
-      messageApi.success('新增成功（演示模式）');
-    } else {
-      const id = values[rowKey];
-      if (schema.api.update) {
-        try {
-          await request(buildUrl(schema.api.update, values), {
-            method: 'PUT',
-            body: JSON.stringify(values),
-          });
-          messageApi.success('编辑成功');
-          setModalState({ open: false, mode: 'create' });
-          fetchList();
-          return;
-        } catch {
-          // 降级本地
-        }
-      }
-      localDataRef.current = localDataRef.current.map(r =>
-        r[rowKey] === id ? { ...r, ...values } : r,
-      );
-      localFilter(filterParams, page, pageSize);
-      messageApi.success('编辑成功（演示模式）');
-    }
 
-    setModalState({ open: false, mode: 'create' });
+      try {
+        await request(schema.api.create, {
+          method: 'POST',
+          body: JSON.stringify(values),
+        });
+        messageApi.success('新增成功');
+        setModalState({ open: false, mode: 'create' });
+        fetchList();
+      } catch (error) {
+        console.error('Create failed:', error);
+        messageApi.error('新增失败，请稍后重试');
+      }
+    } else {
+      if (!schema.api.update) {
+        messageApi.error('编辑功能未配置');
+        return;
+      }
+
+      try {
+        await request(buildUrl(schema.api.update, values), {
+          method: 'PUT',
+          body: JSON.stringify(values),
+        });
+        messageApi.success('编辑成功');
+        setModalState({ open: false, mode: 'create' });
+        fetchList();
+      } catch (error) {
+        console.error('Update failed:', error);
+        messageApi.error('编辑失败，请稍后重试');
+      }
+    }
   }, [
-    request, modalState.mode, schema.api, rowKey,
-    fetchList, localFilter, filterParams, page, pageSize, messageApi,
+    request, modalState.mode, schema.api, fetchList, messageApi,
   ]);
 
   return (
