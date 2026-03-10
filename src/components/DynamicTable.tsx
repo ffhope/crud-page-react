@@ -3,7 +3,7 @@ import { EyeOutlined, EditOutlined, DeleteOutlined, CopyOutlined, MoreOutlined }
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import type { CrudPageSchema, FieldSchema, TableColumnConfig, SelectOption } from '../types/schema';
-import { getEffectiveWidget, getNestedValue } from '../types/schema';
+import { getEffectiveWidget, getNestedValue, shouldShowAction } from '../types/schema';
 
 interface DynamicTableProps {
   schema: CrudPageSchema;
@@ -172,11 +172,20 @@ export default function DynamicTable({
     render: (_: unknown, record: Record<string, unknown>) => {
       const actions = schema.actions ?? [];
       
-      // 分离基础操作和自定义操作
-      const basicActions = actions.filter(action => 
-        action.type === 'view' || action.type === 'edit' || action.type === 'delete'
-      );
-      const customActions = actions.filter(action => action.type === 'custom');
+      // 分离基础操作和自定义操作，并根据 condition 过滤
+      const basicActions = actions.filter(action => {
+        // 检查是否是基础操作类型
+        const isBasicAction = action.type === 'view' || action.type === 'edit' || action.type === 'delete';
+        if (!isBasicAction) return false;
+        // 检查 condition 条件
+        return shouldShowAction(action.condition as Record<string, (string | number | boolean)[]> | undefined, record);
+      });
+      
+      const customActions = actions.filter(action => {
+        if (action.type !== 'custom') return false;
+        // 检查 condition 条件
+        return shouldShowAction(action.condition as Record<string, (string | number | boolean)[]> | undefined, record);
+      });
 
       // 构建下拉菜单项（仅包含自定义操作）
       const dropdownItems = customActions.map(action => ({

@@ -181,7 +181,12 @@ export interface ActionSchema {
   danger?: boolean;
   color?: string;
   permission?: ActionPermission;
-  condition?: Record<string, unknown>;
+  /**
+   * 操作按钮显示条件
+   * 支持字段值匹配：{ status: ['active', 'pending'] }
+   * 支持嵌套字段：{ 'user.role': ['admin'] }
+   */
+  condition?: ActionCondition;
   confirm?: {
     title: string;
     content?: string;
@@ -275,4 +280,50 @@ export function getNestedValue(obj: Record<string, unknown>, path: string): unkn
 export function getFieldGroupPrefix(key: string): string | null {
   const idx = key.indexOf('.');
   return idx >= 0 ? key.slice(0, idx) : null;
+}
+
+/**
+ * 操作按钮显示条件配置
+ * 支持两种格式：
+ * 1. 字段值匹配：{ fieldName: [value1, value2] } - 当字段值在数组中时显示
+ * 2. 自定义表达式：{ expression: "record.status === 'active'" } - 使用表达式判断
+ */
+export interface ActionCondition {
+  [fieldName: string]: (string | number | boolean)[];
+}
+
+/**
+ * 检查操作按钮是否应该显示
+ *
+ * @param condition - 条件配置
+ * @param record - 当前行数据
+ * @returns 是否应该显示该操作
+ *
+ * @example
+ * // 字段值匹配
+ * shouldShowAction({ status: ['active', 'pending'] }, { status: 'active' }) → true
+ * shouldShowAction({ status: ['active', 'pending'] }, { status: 'deleted' }) → false
+ *
+ * // 支持嵌套字段（点分路径）
+ * shouldShowAction({ 'user.role': ['admin'] }, { user: { role: 'admin' } }) → true
+ */
+export function shouldShowAction(
+  condition: ActionCondition | undefined,
+  record: Record<string, unknown>,
+): boolean {
+  if (!condition || Object.keys(condition).length === 0) {
+    return true; // 没有条件时默认显示
+  }
+
+  for (const [fieldPath, allowedValues] of Object.entries(condition)) {
+    // 支持点分路径获取嵌套值
+    const actualValue = getNestedValue(record, fieldPath);
+
+    // 检查值是否在允许的值列表中
+    if (!allowedValues.includes(actualValue as string | number | boolean)) {
+      return false;
+    }
+  }
+
+  return true;
 }
