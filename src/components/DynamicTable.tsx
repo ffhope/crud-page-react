@@ -182,7 +182,9 @@ export default function DynamicTable({
       });
       
       const customActions = actions.filter(action => {
-        if (action.type !== 'custom') return false;
+        // 检查是否是自定义操作类型（非基础操作）
+        const isBasicAction = action.type === 'view' || action.type === 'edit' || action.type === 'delete';
+        if (isBasicAction) return false;
         // 检查 condition 条件
         return shouldShowAction(action.condition as Record<string, (string | number | boolean)[]> | undefined, record);
       });
