@@ -200,13 +200,13 @@ export interface CrudPageSchema {
   id: string;
   title: string;
   api: {
-    list: string | ActionApiConfig;
-    create?: string | ActionApiConfig;
-    update?: string | ActionApiConfig;
-    delete?: string | ActionApiConfig;
-    detail?: string | ActionApiConfig;
+    list: ActionApiConfig;
+    create?: ActionApiConfig;
+    update?: ActionApiConfig;
+    delete?: ActionApiConfig;
+    detail?: ActionApiConfig;
     // 支持自定义 API 配置
-    [key: string]: string | ActionApiConfig | undefined;
+    [key: string]: ActionApiConfig | undefined;
   };
   fields: FieldSchema[];
   actions?: ActionSchema[];

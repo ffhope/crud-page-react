@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.7] - 2025-03-10
+
+### ✨ Added
+- **扩展的 CRUD API 配置**: 标准 CRUD API（list、create、update、delete、detail）现在支持完整的配置对象
+- **灵活的 HTTP 方法**: 支持 GET、POST、PUT、PATCH、DELETE 等方法
+- **自定义请求头**: 支持添加认证、来源标识等请求头
+- **请求体数据配置**: 支持固定参数和动态参数
+- **模板变量替换**: 在请求体中支持 `{{fieldName}}` 格式的变量替换
+- **动态 URL 占位符**: 支持 `:fieldName` 格式的 URL 占位符
+
+### 🔧 Changed
+- **向后兼容**: 继续支持简单字符串 URL 配置
+- **类型安全**: 更新 TypeScript 类型定义，支持混合配置
+- **错误处理**: 改进 API 配置解析的错误处理
+- **代码优化**: 重构 API 调用逻辑，提高可维护性
+
+### 📚 Documentation
+- 新增 `EXTENDED_CRUD_API_CONFIG.md` 详细说明扩展配置功能
+- 提供完整的配置示例和迁移指南
+
+## [0.0.6] - 2025-03-10
+
+### ✨ Added
+- **统一 API 配置**: 支持在 `schema.api` 中集中定义所有 API 配置
+- **API 键引用**: 操作可通过 `apiKey` 引用统一配置的 API
+- **模板变量支持**: 请求体数据支持 `{{fieldName}}` 模板变量替换
+
+### 🔧 Changed
+- 重构 API 配置架构，提高配置的复用性
+- 改进代码组织结构，增强可维护性
+
 ## [0.0.5] - 2025-03-10
 
 ### ✨ Added

@@ -41,24 +41,6 @@ function processTemplateData(data: Record<string, unknown>, record: Record<strin
   return result;
 }
 
-/** 解析 API 配置，支持字符串和对象两种格式 */
-function parseApiConfig(apiDef: string | ActionApiConfig | undefined): ActionApiConfig | undefined {
-  if (!apiDef) return undefined;
-  
-  if (typeof apiDef === 'string') {
-    // 简单字符串 URL 配置
-    return {
-      url: apiDef,
-      method: 'GET',
-      responseType: 'json'
-    };
-  } else if (typeof apiDef === 'object') {
-    // 完整的 API 配置对象
-    return apiDef as ActionApiConfig;
-  }
-  
-  return undefined;
-}
 
 /** 通用请求封装 */
 async function apiRequest<T = unknown>(
@@ -125,13 +107,13 @@ const CrudPage: React.FC<CrudPageProps> = ({ schema, initialData = [], apiReques
     p: number = page,
     ps: number = pageSize,
   ) => {
-    const listApiConfig = parseApiConfig(schema.api.list);
-    
-    if (!listApiConfig) {
+    if (!schema.api.list) {
       // 没有配置 API，使用初始数据
       initializeData();
       return;
     }
+
+    const listApiConfig = schema.api.list;
 
     setLoading(true);
     try {
@@ -205,12 +187,12 @@ const CrudPage: React.FC<CrudPageProps> = ({ schema, initialData = [], apiReques
 
   // ---------- 删除 ----------
   const handleDelete = useCallback(async (record: Record<string, unknown>) => {
-    const deleteApiConfig = parseApiConfig(schema.api.delete);
-    
-    if (!deleteApiConfig) {
+    if (!schema.api.delete) {
       messageApi.error('删除功能未配置');
       return;
     }
+
+    const deleteApiConfig = schema.api.delete;
 
     try {
       // 构建 URL，动态替换占位符
@@ -349,12 +331,12 @@ const CrudPage: React.FC<CrudPageProps> = ({ schema, initialData = [], apiReques
     const isCreate = modalState.mode === 'create';
 
     if (isCreate) {
-      const createApiConfig = parseApiConfig(schema.api.create);
-      
-      if (!createApiConfig) {
+      if (!schema.api.create) {
         messageApi.error('新增功能未配置');
         return;
       }
+
+      const createApiConfig = schema.api.create;
 
       try {
         // 构建请求选项
@@ -388,12 +370,12 @@ const CrudPage: React.FC<CrudPageProps> = ({ schema, initialData = [], apiReques
         messageApi.error('新增失败，请稍后重试');
       }
     } else {
-      const updateApiConfig = parseApiConfig(schema.api.update);
-      
-      if (!updateApiConfig) {
+      if (!schema.api.update) {
         messageApi.error('编辑功能未配置');
         return;
       }
+
+      const updateApiConfig = schema.api.update;
 
       try {
         // 构建 URL，动态替换占位符

@@ -36,6 +36,8 @@ yarn add crud-page-react
 
 ## 快速开始
 
+### 基础用法
+
 ```tsx
 import React from 'react';
 import { CrudPage } from 'crud-page-react';
@@ -104,6 +106,63 @@ function App() {
 
 export default App;
 ```
+
+### 扩展 API 配置
+
+v0.0.7+ 版本支持更强大的 API 配置，包括自定义 HTTP 方法、请求头、请求体数据和模板变量：
+
+```tsx
+const advancedSchema: CrudPageSchema = {
+  id: 'orders',
+  title: '订单管理',
+  api: {
+    // 简单字符串配置（向后兼容）
+    list: '/api/orders',
+    
+    // 扩展对象配置
+    create: {
+      url: '/api/orders',
+      method: 'POST',
+      headers: {
+        'X-Request-Source': 'admin-panel'
+      },
+      data: {
+        source: 'web',
+        createdBy: '{{currentUser}}',
+        timestamp: '{{timestamp}}'
+      }
+    },
+    
+    update: {
+      url: '/api/orders/:id',
+      method: 'PUT',
+      data: {
+        updatedBy: '{{currentUser}}',
+        updateTime: '{{timestamp}}'
+      }
+    },
+    
+    delete: {
+      url: '/api/orders/:orderNo',
+      method: 'DELETE',
+      data: {
+        deletedBy: '{{currentUser}}',
+        deleteReason: '{{deleteReason}}',
+        timestamp: '{{timestamp}}'
+      }
+    }
+  },
+  // ... 其他配置
+};
+```
+
+### 支持的扩展配置
+
+- **HTTP 方法**：GET、POST、PUT、PATCH、DELETE
+- **自定义请求头**：添加认证、来源标识等
+- **请求体数据**：固定参数和动态参数
+- **模板变量**：`{{fieldName}}` 格式的动态值替换
+- **URL 占位符**：`:fieldName` 格式的动态 URL 构建
 
 ## 动态 URL 参数
 
