@@ -18,15 +18,26 @@ interface CrudPageProps {
   locale?: Locale;
 }
 
-/** 动态替换 URL 模板中的占位符 */
+/** 动态替换 URL 模板中的占位符，支持 :fieldName 和 {{fieldName}} 两种格式 */
 function buildUrl(template: string, record: Record<string, unknown>): string {
-  return template.replace(/:(\w+)/g, (match, fieldName) => {
+  let result = template;
+  
+  // 替换 :fieldName 格式
+  result = result.replace(/:(\w+)/g, (match, fieldName) => {
     const value = record[fieldName];
     return value !== undefined ? String(value) : match;
   });
+  
+  // 替换 {{fieldName}} 格式
+  result = result.replace(/\{\{(\w+)\}\}/g, (match, fieldName) => {
+    const value = record[fieldName];
+    return value !== undefined ? String(value) : match;
+  });
+  
+  return result;
 }
 
-/** 处理模板数据，支持 {{fieldName}} 格式的变量替换 */
+/** 处理模板数据，支持 {{fieldName}} 格式的变量替换，支持嵌套对象和数组 */
 function processTemplateData(data: Record<string, unknown>, record: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   
@@ -37,6 +48,24 @@ function processTemplateData(data: Record<string, unknown>, record: Record<strin
         const fieldValue = record[fieldName];
         return fieldValue !== undefined ? String(fieldValue) : match;
       });
+    } else if (typeof value === 'object' && value !== null) {
+      if (Array.isArray(value)) {
+        // 处理数组
+        result[key] = value.map(item => {
+          if (typeof item === 'object' && item !== null) {
+            return processTemplateData(item as Record<string, unknown>, record);
+          } else if (typeof item === 'string' && item.includes('{{') && item.includes('}}')) {
+            return item.replace(/\{\{(\w+)\}\}/g, (match, fieldName) => {
+              const fieldValue = record[fieldName];
+              return fieldValue !== undefined ? String(fieldValue) : match;
+            });
+          }
+          return item;
+        });
+      } else {
+        // 处理嵌套对象
+        result[key] = processTemplateData(value as Record<string, unknown>, record);
+      }
     } else {
       result[key] = value;
     }
@@ -141,19 +170,36 @@ const CrudPage: React.FC<CrudPageProps> = ({
         }
       };
 
-      // 如果是 POST 请求，将查询参数放到请求体中
-      let url = listApiConfig.url;
+      // 构建 URL，支持动态占位符替换
+      let url = buildUrl(listApiConfig.url, params);
       if (listApiConfig.method === 'POST') {
         const queryParams: Record<string, string> = {};
         query.forEach((value, key) => {
           queryParams[key] = value;
         });
+        
+        // 处理模板数据（如果有的话）
+        let processedApiData = {};
+        if (listApiConfig.data) {
+          // 对于list API，通常没有特定的record，使用查询参数作为上下文
+          processedApiData = processTemplateData(listApiConfig.data, queryParams);
+        }
+        
         const requestData = {
           ...queryParams,
-          ...listApiConfig.data
+          ...processedApiData
         };
         options.body = JSON.stringify(requestData);
       } else {
+        // 对于GET请求，如果有data配置，将其作为查询参数处理
+        if (listApiConfig.data) {
+          const processedApiData = processTemplateData(listApiConfig.data, params);
+          Object.entries(processedApiData).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== '') {
+              query.set(key, String(value));
+            }
+          });
+        }
         url = `${url}?${query}`;
       }
 
@@ -205,11 +251,7 @@ const CrudPage: React.FC<CrudPageProps> = ({
 
     try {
       // 构建 URL，动态替换占位符
-      let url = deleteApiConfig.url;
-      url = url.replace(/:(\w+)/g, (match: string, fieldName: string) => {
-        const value = record[fieldName];
-        return value !== undefined ? String(value) : match;
-      });
+      let url = buildUrl(deleteApiConfig.url, record);
       
       // 构建请求选项
       const options: RequestInit = {
@@ -241,10 +283,61 @@ const CrudPage: React.FC<CrudPageProps> = ({
 
   // ---------- 操作列点击 ----------
   const handleAction = useCallback(async (action: ActionSchema, record: Record<string, unknown>) => {
-    if (action.type === 'view') {
-      setModalState({ open: true, mode: 'view', record });
-    } else if (action.type === 'edit') {
-      setModalState({ open: true, mode: 'edit', record });
+    if (action.type === 'view' || action.type === 'edit') {
+      // 如果配置了detail API，先调用获取详细数据
+      if (schema.api.detail) {
+        try {
+          const detailApiConfig = schema.api.detail;
+          
+          // 构建 URL，动态替换占位符
+          let url = buildUrl(detailApiConfig.url, record);
+
+          // 构建请求选项
+          const options: RequestInit = {
+            method: detailApiConfig.method || 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              ...detailApiConfig.headers
+            }
+          };
+
+          // 处理请求体数据（对于GET请求，通常不需要body，但有些API可能需要）
+          if (detailApiConfig.data && ['POST', 'PUT', 'PATCH'].includes(detailApiConfig.method || 'GET')) {
+            const processedData = processTemplateData(detailApiConfig.data, record);
+            options.body = JSON.stringify(processedData);
+          } else if (detailApiConfig.method === 'GET' && detailApiConfig.data) {
+            // 对于GET请求，将data作为查询参数
+            const processedData = processTemplateData(detailApiConfig.data, record);
+            const query = new URLSearchParams();
+            Object.entries(processedData).forEach(([key, value]) => {
+              if (value !== undefined && value !== null) {
+                query.set(key, String(value));
+              }
+            });
+            url = `${url}?${query}`;
+          }
+
+          const response = await request(url, options);
+          
+          // 提取详细数据
+          let detailData = record; // 默认使用列表数据
+          if (response && typeof response === 'object') {
+            const responseObj = response as Record<string, unknown>;
+            // 尝试从不同的响应结构中提取数据
+            detailData = (responseObj.data ?? responseObj.result ?? responseObj) as Record<string, unknown>;
+          }
+          
+          setModalState({ open: true, mode: action.type, record: detailData });
+        } catch (error) {
+          console.error('Failed to fetch detail:', error);
+          messageApi.error('获取详细数据失败，使用列表数据');
+          // 如果获取详细数据失败，仍然使用列表数据
+          setModalState({ open: true, mode: action.type, record });
+        }
+      } else {
+        // 没有配置detail API，直接使用列表数据
+        setModalState({ open: true, mode: action.type, record });
+      }
     } else if (action.type === 'delete') {
       handleDelete(record);
     } else if (action.type === 'custom') {
@@ -277,11 +370,7 @@ const CrudPage: React.FC<CrudPageProps> = ({
 
       try {
         // 构建 URL，动态替换占位符
-        let url = apiConfig.url;
-        url = url.replace(/:(\w+)/g, (match: string, fieldName: string) => {
-          const value = record[fieldName];
-          return value !== undefined ? String(value) : match;
-        });
+        let url = buildUrl(apiConfig.url, record);
         
         // 构建请求选项
         const options: RequestInit = {
@@ -370,7 +459,9 @@ const CrudPage: React.FC<CrudPageProps> = ({
         
         options.body = JSON.stringify(requestData);
 
-        await request(createApiConfig.url, options);
+        // 构建 URL，支持动态占位符替换
+        const url = buildUrl(createApiConfig.url, values);
+        await request(url, options);
         messageApi.success('新增成功');
         setModalState({ open: false, mode: 'create' });
         fetchList();
@@ -388,11 +479,7 @@ const CrudPage: React.FC<CrudPageProps> = ({
 
       try {
         // 构建 URL，动态替换占位符
-        let url = updateApiConfig.url;
-        url = url.replace(/:(\w+)/g, (match: string, fieldName: string) => {
-          const value = values[fieldName];
-          return value !== undefined ? String(value) : match;
-        });
+        let url = buildUrl(updateApiConfig.url, values);
 
         // 构建请求选项
         const options: RequestInit = {

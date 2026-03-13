@@ -319,8 +319,11 @@ export function shouldShowAction(
     // 支持点分路径获取嵌套值
     const actualValue = getNestedValue(record, fieldPath);
 
+    // 确保 allowedValues 是数组
+    const valuesArray = Array.isArray(allowedValues) ? allowedValues : [allowedValues];
+
     // 检查值是否在允许的值列表中
-    if (!allowedValues.includes(actualValue as string | number | boolean)) {
+    if (!valuesArray.includes(actualValue as string | number | boolean)) {
       return false;
     }
   }
