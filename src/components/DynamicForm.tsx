@@ -470,7 +470,7 @@ export default function DynamicForm({
   };
 
   const formFields = schema.fields.filter((f) => {
-    if (mode === 'view') return f.table !== false && f.table !== undefined;
+    // 查看模式和编辑模式都应该遵循form字段配置
     return f.form !== false && f.form !== undefined;
   });
 
