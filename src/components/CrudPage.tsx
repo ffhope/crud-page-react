@@ -478,8 +478,11 @@ const CrudPage: React.FC<CrudPageProps> = ({
       const updateApiConfig = schema.api.update;
 
       try {
+        // 使用原始记录数据进行模板变量替换（来自detail或列表数据）
+        const templateData = modalState.record || {};
+        
         // 构建 URL，动态替换占位符
-        let url = buildUrl(updateApiConfig.url, values);
+        let url = buildUrl(updateApiConfig.url, templateData);
 
         // 构建请求选项
         const options: RequestInit = {
@@ -493,7 +496,8 @@ const CrudPage: React.FC<CrudPageProps> = ({
         // 处理请求体数据
         let requestData = { ...values };
         if (updateApiConfig.data) {
-          const processedData = processTemplateData(updateApiConfig.data, values);
+          // 使用原始记录数据处理模板变量，而不是表单值
+          const processedData = processTemplateData(updateApiConfig.data, templateData);
           requestData = {
             ...requestData,
             ...processedData,
@@ -513,7 +517,7 @@ const CrudPage: React.FC<CrudPageProps> = ({
       }
     }
   }, [
-    request, modalState.mode, schema.api, fetchList, messageApi,
+    request, modalState.mode, modalState.record, schema.api, fetchList, messageApi,
   ]);
 
   return (
